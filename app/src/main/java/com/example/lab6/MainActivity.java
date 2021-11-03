@@ -10,10 +10,13 @@ import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -37,18 +40,22 @@ public class MainActivity extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //obtain a FusedLocationProviderClient
+        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_map);
 
         mapFragment.getMapAsync(googleMap -> {
             mMap = googleMap;
             //code to display marker
-            googleMap.addMarker(new MarkerOptions().position(mBascomHallLatLng).title("Destination"));
+            googleMap.addMarker(new MarkerOptions().position(mBascomHallLatLng).title("Bascom Hall"));
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(mBascomHallLatLng));
             displayMyLocation();
         });
 
-        //obtain a FusedLocationProviderClient
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
+
     private void displayMyLocation() {
         //check if permission granted
         int permission = ActivityCompat.checkSelfPermission(this.getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION);
@@ -62,30 +69,29 @@ public class MainActivity extends FragmentActivity {
         else {
             mFusedLocationProviderClient.getLastLocation().addOnCompleteListener(this, task -> {
                 Location mLastKnownLocation = task.getResult();
-                if(task.isSuccessful() && mLastKnownLocation != null) {
+                //Log.i("task", String.valueOf(task.isSuccessful()));
+                if(task.isSuccessful() && (mLastKnownLocation != null)) {
                     mMap.addPolyline(new PolylineOptions().add(
                             new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude()), mBascomHallLatLng
                     ));
 
-                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_map);
+                    //Log.i("latitude", String.valueOf(mLastKnownLocation.getLatitude()));
+                    //Log.i("longitude", String.valueOf(mLastKnownLocation.getLongitude()));
 
-                    mapFragment.getMapAsync(googleMap -> {
-                        //mMap = googleMap;
-                        //code to display marker
-                        LatLng mCurrentLatLng = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
-                        googleMap.addMarker(new MarkerOptions().position(mCurrentLatLng).title("Current Location"));
-                        //displayMyLocation();
-                    });
+                    //add marker for current location
+                    LatLng mCurrentLatLng = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
+                    mMap.addMarker(new MarkerOptions().position(mCurrentLatLng).title("Current Location"));
                 }
             });
         }
     }
+
     //handles the result of the request for location permissions
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        //super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION) {
             //if request is cancelled, the result arrays are empty
             if (grantResults.length > 0
